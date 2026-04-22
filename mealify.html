@@ -24,27 +24,21 @@
     .btn-tap { -webkit-tap-highlight-color: transparent; cursor: pointer; border: none; background: none; transition: transform 0.12s, opacity 0.12s; }
     .btn-tap:active { transform: scale(0.95); opacity: 0.85; }
 
-    /* Scrollable content area (above bottom nav) */
-    .scroll-area { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding-bottom: 100px; }
+    /* Scrollable content area */
+    .scroll-area { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding-bottom: 32px; }
 
-    /* Bottom nav */
-    .bottom-nav {
-      position: fixed; bottom: 0; left: 0; right: 0;
-      background: #fff; border-top: 1px solid #e8e4da;
-      display: flex; padding: 10px 16px;
-      padding-bottom: max(10px, env(safe-area-inset-bottom));
-      z-index: 200; gap: 8px;
-    }
+    /* Top nav tabs */
     .nav-tab {
-      flex: 1; display: flex; flex-direction: column; align-items: center;
-      gap: 4px; padding: 8px 4px; border-radius: 14px;
+      flex: 1; display: flex; align-items: center; justify-content: center;
+      gap: 6px; padding: 9px 4px; border-radius: 22px;
       transition: background 0.15s; cursor: pointer; border: none;
-      -webkit-tap-highlight-color: transparent;
+      -webkit-tap-highlight-color: transparent; background: none;
     }
-    .nav-tab.active { background: #f0ece3; }
-    .nav-tab-icon { font-size: 22px; line-height: 1; }
-    .nav-tab-label { font-size: 11px; font-family: 'DM Mono', monospace; letter-spacing: 0.05em; color: #999; text-transform: uppercase; }
-    .nav-tab.active .nav-tab-label { color: #1a1a1a; }
+    .nav-tab.active { background: #1a1a1a; }
+    .nav-tab-icon { font-size: 16px; line-height: 1; }
+    .nav-tab-label { font-size: 13px; font-family: 'DM Mono', monospace; letter-spacing: 0.05em; color: #999; text-transform: uppercase; }
+    .nav-tab.active .nav-tab-label { color: #fafaf7; }
+    .nav-tab.active .nav-tab-icon { filter: none; }
 
     /* Cards */
     .meal-card { background: #fff; border: 1.5px solid #e8e4da; border-radius: 18px; overflow: hidden; transition: transform 0.15s; -webkit-tap-highlight-color: transparent; }
