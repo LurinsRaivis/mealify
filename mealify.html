@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#FAFAF7" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <title>La Cuisine – Meal Planner</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;0,700;1,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; background: #FAFAF7; }
+    body { font-family: 'Lora', Georgia, serif; color: #1a1a1a; -webkit-font-smoothing: antialiased; overscroll-behavior: none; }
+    #root { height: 100%; display: flex; flex-direction: column; }
+    ::-webkit-scrollbar { display: none; }
+
+    /* Utilities */
+    .mono { font-family: 'DM Mono', monospace; }
+    .btn-tap { -webkit-tap-highlight-color: transparent; cursor: pointer; border: none; background: none; transition: transform 0.12s, opacity 0.12s; }
+    .btn-tap:active { transform: scale(0.95); opacity: 0.85; }
+
+    /* Scrollable content area (above bottom nav) */
+    .scroll-area { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding-bottom: 100px; }
+
+    /* Bottom nav */
+    .bottom-nav {
+      position: fixed; bottom: 0; left: 0; right: 0;
+      background: #fff; border-top: 1px solid #e8e4da;
+      display: flex; padding: 10px 16px;
+      padding-bottom: max(10px, env(safe-area-inset-bottom));
+      z-index: 200; gap: 8px;
+    }
+    .nav-tab {
+      flex: 1; display: flex; flex-direction: column; align-items: center;
+      gap: 4px; padding: 8px 4px; border-radius: 14px;
+      transition: background 0.15s; cursor: pointer; border: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .nav-tab.active { background: #f0ece3; }
+    .nav-tab-icon { font-size: 22px; line-height: 1; }
+    .nav-tab-label { font-size: 11px; font-family: 'DM Mono', monospace; letter-spacing: 0.05em; color: #999; text-transform: uppercase; }
+    .nav-tab.active .nav-tab-label { color: #1a1a1a; }
+
+    /* Cards */
+    .meal-card { background: #fff; border: 1.5px solid #e8e4da; border-radius: 18px; overflow: hidden; transition: transform 0.15s; -webkit-tap-highlight-color: transparent; }
+    .meal-card:active { transform: scale(0.98); }
+
+    /* Shopping item row */
+    .shop-row { display: flex; align-items: center; gap: 12px; padding: 14px 16px; background: #fff; border: 1.5px solid #e8e4da; border-radius: 14px; -webkit-tap-highlight-color: transparent; transition: opacity 0.2s; }
+    .shop-row.done { opacity: 0.4; }
+
+    /* Checkbox */
+    .check-circle { width: 26px; height: 26px; border-radius: 50%; border: 2px solid #d4c9b5; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.2s; }
+    .check-circle.checked { background: #2D9B5A; border-color: #2D9B5A; }
+
+    /* Modal */
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 500; display: flex; align-items: flex-end; backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); }
+    .modal-sheet { background: #fafaf7; border-radius: 24px 24px 0 0; width: 100%; max-height: 92vh; overflow-y: auto; padding: 0 20px 32px; padding-bottom: max(32px, calc(env(safe-area-inset-bottom) + 20px)); }
+    .modal-handle { width: 40px; height: 4px; background: #d4c9b5; border-radius: 2px; margin: 14px auto 20px; }
+
+    /* Form inputs */
+    .field { font-family: 'Lora', serif; font-size: 16px; border: 1.5px solid #e0dbd0; border-radius: 12px; padding: 13px 16px; background: #fff; outline: none; width: 100%; color: #1a1a1a; -webkit-appearance: none; }
+    .field:focus { border-color: #1a1a1a; }
+
+    /* Tag pill */
+    .tag-pill { font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 0.05em; text-transform: uppercase; padding: 3px 10px; border-radius: 20px; background: #f0ece3; color: #888; }
+
+    /* Label badge */
+    .label-badge { font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 0.04em; padding: 2px 8px; border-radius: 12px; }
+
+    /* Progress bar */
+    .progress-track { height: 4px; background: #e8e4da; border-radius: 2px; overflow: hidden; }
+    .progress-fill { height: 100%; background: #2D9B5A; border-radius: 2px; transition: width 0.4s ease; }
+
+    /* Filter pills */
+    .filter-pill { font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; padding: 6px 14px; border-radius: 20px; border: 1.5px solid transparent; -webkit-tap-highlight-color: transparent; cursor: pointer; transition: all 0.15s; white-space: nowrap; }
+
+    @keyframes slideUp { from { transform: translateY(30px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    .slide-up { animation: slideUp 0.25s ease forwards; }
+    .fade-in { animation: fadeIn 0.2s ease forwards; }
+
+    /* Ingredient row in detail */
+    .ing-row { display: flex; justify-content: space-between; align-items: center; padding: 11px 12px; border-radius: 10px; }
+    .ing-row:nth-child(odd) { background: #f8f4ee; }
+  </style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useCallback } = React;
+
+const SAMPLE_MEALS = [
+  { id: 1, name: "Shakshuka", day: "Monday", emoji: "🍳", tags: ["breakfast","vegetarian"], color: "#E8472A",
+    ingredients: [
+      { name: "Eggs", amount: "4", unit: "pcs", label: "Dairy & Eggs" },
+      { name: "Canned tomatoes", amount: "400", unit: "g", label: "Pantry" },
+      { name: "Bell peppers", amount: "2", unit: "pcs", label: "Produce" },
+      { name: "Onion", amount: "1", unit: "pcs", label: "Produce" },
+      { name: "Cumin", amount: "1", unit: "tsp", label: "Spices" },
+      { name: "Paprika", amount: "1", unit: "tsp", label: "Spices" },
+      { name: "Feta cheese", amount: "80", unit: "g", label: "Dairy & Eggs" },
+    ]},
+  { id: 2, name: "Salmon Pasta", day: "Tuesday", emoji: "🍝", tags: ["dinner","seafood"], color: "#FF7F50",
+    ingredients: [
+      { name: "Salmon fillet", amount: "300", unit: "g", label: "Seafood" },
+      { name: "Penne pasta", amount: "250", unit: "g", label: "Pantry" },
+      { name: "Heavy cream", amount: "200", unit: "ml", label: "Dairy & Eggs" },
+      { name: "Garlic", amount: "3", unit: "cloves", label: "Produce" },
+      { name: "Lemon", amount: "1", unit: "pcs", label: "Produce" },
+      { name: "Dill", amount: "1", unit: "bunch", label: "Produce" },
+      { name: "Capers", amount: "2", unit: "tbsp", label: "Pantry" },
+    ]},
+  { id: 3, name: "Caesar Salad", day: "Wednesday", emoji: "🥗", tags: ["lunch","vegetarian"], color: "#2D9B5A",
+    ingredients: [
+      { name: "Romaine lettuce", amount: "1", unit: "head", label: "Produce" },
+      { name: "Parmesan", amount: "60", unit: "g", label: "Dairy & Eggs" },
+      { name: "Croutons", amount: "100", unit: "g", label: "Bakery" },
+      { name: "Caesar dressing", amount: "4", unit: "tbsp", label: "Pantry" },
+      { name: "Chicken breast", amount: "200", unit: "g", label: "Meat" },
+      { name: "Anchovies", amount: "4", unit: "fillets", label: "Seafood" },
+    ]},
+  { id: 4, name: "Ramen", day: "Thursday", emoji: "🍜", tags: ["dinner","asian"], color: "#C0392B",
+    ingredients: [
+      { name: "Ramen noodles", amount: "200", unit: "g", label: "Pantry" },
+      { name: "Pork belly", amount: "300", unit: "g", label: "Meat" },
+      { name: "Soft boiled eggs", amount: "2", unit: "pcs", label: "Dairy & Eggs" },
+      { name: "Miso paste", amount: "3", unit: "tbsp", label: "Pantry" },
+      { name: "Soy sauce", amount: "2", unit: "tbsp", label: "Pantry" },
+      { name: "Nori sheets", amount: "4", unit: "pcs", label: "Pantry" },
+      { name: "Spring onions", amount: "3", unit: "stalks", label: "Produce" },
+      { name: "Corn", amount: "100", unit: "g", label: "Produce" },
+    ]},
+];
+
+const LABEL_COLORS = {
+  "Produce":      { bg: "#E8F5E9", text: "#2E7D32", border: "#A5D6A7" },
+  "Dairy & Eggs": { bg: "#FFF8E1", text: "#F57F17", border: "#FFE082" },
+  "Pantry":       { bg: "#EDE7F6", text: "#4527A0", border: "#B39DDB" },
+  "Meat":         { bg: "#FCE4EC", text: "#880E4F", border: "#F48FB1" },
+  "Seafood":      { bg: "#E3F2FD", text: "#0D47A1", border: "#90CAF9" },
+  "Bakery":       { bg: "#FFF3E0", text: "#E65100", border: "#FFCC80" },
+  "Spices":       { bg: "#FBE9E7", text: "#BF360C", border: "#FFAB91" },
+  "Other":        { bg: "#F5F5F5", text: "#424242", border: "#E0E0E0" },
+};
+const ALL_LABELS = Object.keys(LABEL_COLORS);
+const DAYS = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
+const ls = (label) => LABEL_COLORS[label] || LABEL_COLORS["Other"];
+
+// ── Small components ──────────────────────────────────────────────────
+function LabelBadge({ label }) {
+  const s = ls(label);
+  return <span className="label-badge" style={{ background: s.bg, color: s.text, border: `1px solid ${s.border}` }}>{label}</span>;
+}
+
+function CheckCircle({ checked }) {
+  return (
+    <div className={`check-circle ${checked ? "checked" : ""}`}>
+      {checked && <svg width="13" height="10" viewBox="0 0 13 10" fill="none"><path d="M1.5 5L5 8.5L11.5 1.5" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+    </div>
+  );
+}
+
+// ── Modals ────────────────────────────────────────────────────────────
+function BottomSheet({ onClose, title, children }) {
+  return (
+    <div className="modal-overlay fade-in" onClick={onClose}>
+      <div className="modal-sheet slide-up" onClick={e => e.stopPropagation()}>
+        <div className="modal-handle" />
+        {title && <div style={{ fontSize: 20, fontWeight: 700, marginBottom: 20 }}>{title}</div>}
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function MealDetail({ meal, onClose, onAddToList }) {
+  return (
+    <BottomSheet onClose={onClose}>
+      <div style={{ height: 5, background: meal.color, borderRadius: 3, marginBottom: 20, marginLeft: -20, marginRight: -20 }} />
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
+        <div>
+          <span style={{ fontSize: 36 }}>{meal.emoji}</span>
+          <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: "-0.5px", marginTop: 4 }}>{meal.name}</div>
+        </div>
+        <button className="btn-tap" onClick={onClose}
+          style={{ width: 34, height: 34, borderRadius: "50%", background: "#f0ece3", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, color: "#888", marginTop: 4 }}>×</button>
+      </div>
+
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 20 }}>
+        <span className="tag-pill" style={{ background: "#f5f0e8", color: "#aaa" }}>{meal.day}</span>
+        {meal.tags.map(t => <span key={t} className="tag-pill">{t}</span>)}
+      </div>
+
+      <div style={{ fontSize: 11, fontFamily: "'DM Mono',monospace", letterSpacing: "0.08em", textTransform: "uppercase", color: "#bbb", marginBottom: 10 }}>Ingredients</div>
+      <div style={{ borderRadius: 14, overflow: "hidden", border: "1.5px solid #e8e4da", marginBottom: 20 }}>
+        {meal.ingredients.map((ing, i) => (
+          <div key={i} className="ing-row">
+            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+              <span style={{ fontSize: 15 }}>{ing.name}</span>
+              <LabelBadge label={ing.label} />
+            </div>
+            <span style={{ fontFamily: "'DM Mono',monospace", fontSize: 13, color: "#888", flexShrink: 0 }}>{ing.amount} {ing.unit}</span>
+          </div>
+        ))}
+      </div>
+
+      <button className="btn-tap" onClick={() => { onAddToList(meal); onClose(); }}
+        style={{ width: "100%", background: "#1a1a1a", color: "#fafaf7", padding: 16, borderRadius: 16, fontFamily: "'Lora',serif", fontWeight: 700, fontSize: 16 }}>
+        Add All to Shopping List
+      </button>
+    </BottomSheet>
+  );
+}
+
+function AddMealModal({ onClose, onAdd }) {
+  const [form, setForm] = useState({ name: "", day: "Monday", emoji: "🍽️", tags: "", color: "#6366f1" });
+  const set = k => e => setForm(f => ({ ...f, [k]: e.target.value }));
+  return (
+    <BottomSheet onClose={onClose} title="Add Meal">
+      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        <div style={{ display: "flex", gap: 10 }}>
+          <input className="field" value={form.emoji} onChange={set("emoji")} placeholder="🍽️" style={{ width: 70, textAlign: "center", fontSize: 24 }} />
+          <input className="field" value={form.name} onChange={set("name")} placeholder="Meal name" style={{ flex: 1 }} />
+        </div>
+        <div style={{ display: "flex", gap: 10 }}>
+          <select className="field" value={form.day} onChange={set("day")} style={{ flex: 1 }}>
+            {DAYS.map(d => <option key={d}>{d}</option>)}
+          </select>
+          <input type="color" className="field" value={form.color} onChange={set("color")} style={{ width: 60, padding: 6, cursor: "pointer" }} />
+        </div>
+        <input className="field" value={form.tags} onChange={set("tags")} placeholder="Tags: dinner, vegetarian…" />
+      </div>
+      <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
+        <button className="btn-tap" onClick={onClose} style={{ flex: 1, padding: 14, borderRadius: 14, background: "#f0ece3", color: "#888", fontFamily: "'Lora',serif", fontSize: 15 }}>Cancel</button>
+        <button className="btn-tap" onClick={() => { if (!form.name.trim()) return; onAdd(form); onClose(); }}
+          style={{ flex: 1, padding: 14, borderRadius: 14, background: "#1a1a1a", color: "#fafaf7", fontFamily: "'Lora',serif", fontWeight: 700, fontSize: 15 }}>Add</button>
+      </div>
+    </BottomSheet>
+  );
+}
+
+function AddItemModal({ onClose, onAdd }) {
+  const [form, setForm] = useState({ name: "", amount: "", unit: "", label: "Produce" });
+  const set = k => e => setForm(f => ({ ...f, [k]: e.target.value }));
+  return (
+    <BottomSheet onClose={onClose} title="Add Item">
+      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        <input className="field" value={form.name} onChange={set("name")} placeholder="Item name" />
+        <div style={{ display: "flex", gap: 10 }}>
+          <input className="field" value={form.amount} onChange={set("amount")} placeholder="Amount" style={{ flex: 1 }} />
+          <input className="field" value={form.unit} onChange={set("unit")} placeholder="Unit" style={{ flex: 1 }} />
+        </div>
+        <select className="field" value={form.label} onChange={set("label")}>
+          {ALL_LABELS.map(l => <option key={l}>{l}</option>)}
+        </select>
+      </div>
+      <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
+        <button className="btn-tap" onClick={onClose} style={{ flex: 1, padding: 14, borderRadius: 14, background: "#f0ece3", color: "#888", fontFamily: "'Lora',serif", fontSize: 15 }}>Cancel</button>
+        <button className="btn-tap" onClick={() => { if (!form.name.trim()) return; onAdd(form); onClose(); }}
+          style={{ flex: 1, padding: 14, borderRadius: 14, background: "#1a1a1a", color: "#fafaf7", fontFamily: "'Lora',serif", fontWeight: 700, fontSize: 15 }}>Add</button>
+      </div>
+    </BottomSheet>
+  );
+}
+
+// ── Main App ──────────────────────────────────────────────────────────
+function App() {
+  const [view, setView] = useState("meals");
+  const [meals, setMeals] = useState(SAMPLE_MEALS);
+  const [selectedMeal, setSelectedMeal] = useState(null);
+  const [shoppingList, setShoppingList] = useState([]);
+  const [checked, setChecked] = useState({});
+  const [filterLabel, setFilterLabel] = useState("All");
+  const [modal, setModal] = useState(null); // "addMeal" | "addItem"
+
+  const addMealsToList = useCallback((meal) => {
+    setShoppingList(prev => {
+      const updated = [...prev];
+      meal.ingredients.forEach(ing => {
+        if (!updated.find(i => i.name.toLowerCase() === ing.name.toLowerCase()))
+          updated.push({ ...ing, id: Date.now() + Math.random(), fromMeal: meal.name });
+      });
+      return updated;
+    });
+  }, []);
+
+  const handleAddMeal = (form) => {
+    setMeals(m => [...m, {
+      ...form,
+      id: Date.now(),
+      tags: form.tags.split(",").map(t => t.trim()).filter(Boolean),
+      ingredients: [],
+    }]);
+  };
+
+  const handleAddItem = (form) => {
+    setShoppingList(l => [...l, { ...form, id: Date.now() }]);
+  };
+
+  const removeItem = (id) => setShoppingList(l => l.filter(i => i.id !== id));
+  const toggleCheck = (id) => setChecked(c => ({ ...c, [id]: !c[id] }));
+  const clearDone = () => {
+    setShoppingList(l => l.filter(i => !checked[i.id]));
+    setChecked({});
+  };
+
+  const checkedCount = shoppingList.filter(i => checked[i.id]).length;
+  const grouped = shoppingList.reduce((acc, item) => {
+    const lbl = item.label || "Other";
+    (acc[lbl] = acc[lbl] || []).push(item);
+    return acc;
+  }, {});
+  const usedLabels = Object.keys(grouped);
+  const visibleLabels = filterLabel === "All" ? usedLabels : usedLabels.filter(l => l === filterLabel);
+
+  return (
+    <div style={{ height: "100dvh", display: "flex", flexDirection: "column" }}>
+
+      {/* Sticky header */}
+      <div style={{ background: "#fafaf7", borderBottom: "1px solid #e8e4da", padding: "16px 20px 12px", flexShrink: 0 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div>
+            <div style={{ fontSize: 20, fontWeight: 700, letterSpacing: "-0.4px" }}>🥬 La Cuisine</div>
+            <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 10, color: "#bbb", letterSpacing: "0.08em", marginTop: 1 }}>MEAL PLANNER & SHOPPING</div>
+          </div>
+          <button className="btn-tap" onClick={() => setModal(view === "meals" ? "addMeal" : "addItem")}
+            style={{ background: "#1a1a1a", color: "#fafaf7", padding: "9px 18px", borderRadius: 30, fontFamily: "'Lora',serif", fontWeight: 700, fontSize: 14 }}>
+            + Add
+          </button>
+        </div>
+      </div>
+
+      {/* Scrollable content */}
+      <div className="scroll-area" style={{ padding: "20px 16px 0" }}>
+
+        {/* ── MEALS ── */}
+        {view === "meals" && (
+          <div className="fade-in">
+            <div style={{ color: "#bbb", fontFamily: "'DM Mono',monospace", fontSize: 11, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 16 }}>
+              {meals.length} meals planned
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+              {meals.map(meal => (
+                <div key={meal.id} className="meal-card" onClick={() => setSelectedMeal(meal)}>
+                  <div style={{ height: 6, background: meal.color }} />
+                  <div style={{ padding: "16px 18px 18px" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
+                      <span style={{ fontSize: 32 }}>{meal.emoji}</span>
+                      <span style={{ fontFamily: "'DM Mono',monospace", fontSize: 10, color: "#aaa", letterSpacing: "0.08em", textTransform: "uppercase", background: "#f5f0e8", padding: "3px 10px", borderRadius: 20 }}>{meal.day}</span>
+                    </div>
+                    <div style={{ fontSize: 19, fontWeight: 700, marginBottom: 8, letterSpacing: "-0.3px" }}>{meal.name}</div>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
+                        {meal.tags.map(t => <span key={t} className="tag-pill">{t}</span>)}
+                      </div>
+                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                        <span style={{ fontFamily: "'DM Mono',monospace", fontSize: 11, color: "#ccc" }}>{meal.ingredients.length} ing.</span>
+                        <button className="btn-tap" onClick={e => { e.stopPropagation(); addMealsToList(meal); setView("shopping"); }}
+                          style={{ background: "#f0ece3", color: "#555", padding: "6px 14px", borderRadius: 20, fontFamily: "'DM Mono',monospace", fontSize: 10, letterSpacing: "0.05em", textTransform: "uppercase" }}>
+                          + List
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* ── SHOPPING ── */}
+        {view === "shopping" && (
+          <div className="fade-in">
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+              <div>
+                <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: "-0.5px" }}>Shopping List</div>
+                <div style={{ color: "#bbb", fontSize: 13, fontStyle: "italic", marginTop: 2 }}>{checkedCount} of {shoppingList.length} done</div>
+              </div>
+              {checkedCount > 0 && (
+                <button className="btn-tap" onClick={clearDone}
+                  style={{ background: "#f0ece3", color: "#888", padding: "8px 14px", borderRadius: 20, fontFamily: "'DM Mono',monospace", fontSize: 10, letterSpacing: "0.06em", textTransform: "uppercase" }}>
+                  Clear Done
+                </button>
+              )}
+            </div>
+
+            {shoppingList.length > 0 && (
+              <div className="progress-track" style={{ marginBottom: 16 }}>
+                <div className="progress-fill" style={{ width: `${shoppingList.length ? (checkedCount / shoppingList.length) * 100 : 0}%` }} />
+              </div>
+            )}
+
+            {/* Label filter pills */}
+            {usedLabels.length > 1 && (
+              <div style={{ display: "flex", gap: 6, overflowX: "auto", marginBottom: 20, paddingBottom: 4, WebkitOverflowScrolling: "touch" }}>
+                {["All", ...usedLabels].map(l => {
+                  const s = l !== "All" ? ls(l) : null;
+                  const active = filterLabel === l;
+                  return (
+                    <button key={l} className="filter-pill" onClick={() => setFilterLabel(l)}
+                      style={active && l !== "All"
+                        ? { background: s.bg, color: s.text, border: `1.5px solid ${s.border}` }
+                        : active ? { background: "#1a1a1a", color: "#fafaf7", border: "1.5px solid #1a1a1a" }
+                        : { background: "#f5f0e8", color: "#aaa", border: "1.5px solid transparent" }}>
+                      {l}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
+            {shoppingList.length === 0 ? (
+              <div style={{ textAlign: "center", padding: "60px 0", color: "#ccc" }}>
+                <div style={{ fontSize: 52, marginBottom: 14 }}>🛒</div>
+                <div style={{ fontSize: 18, fontWeight: 600, marginBottom: 6 }}>Your list is empty</div>
+                <div style={{ fontSize: 14, fontStyle: "italic" }}>Add meals or tap + Add</div>
+              </div>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+                {visibleLabels.map(label => {
+                  const items = grouped[label];
+                  const s = ls(label);
+                  return (
+                    <div key={label}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+                        <span style={{ fontSize: 11, fontFamily: "'DM Mono',monospace", letterSpacing: "0.07em", textTransform: "uppercase", padding: "4px 12px", borderRadius: 20, background: s.bg, color: s.text, border: `1.5px solid ${s.border}` }}>{label}</span>
+                        <div style={{ flex: 1, height: 1, background: s.border }} />
+                        <span style={{ fontFamily: "'DM Mono',monospace", fontSize: 10, color: "#ccc" }}>{items.filter(i => !checked[i.id]).length} left</span>
+                      </div>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                        {items.map(item => {
+                          const done = !!checked[item.id];
+                          return (
+                            <div key={item.id} className={`shop-row ${done ? "done" : ""}`} onClick={() => toggleCheck(item.id)}>
+                              <CheckCircle checked={done} />
+                              <div style={{ flex: 1, minWidth: 0 }}>
+                                <div style={{ fontSize: 15, textDecoration: done ? "line-through" : "none", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.name}</div>
+                                {item.fromMeal && <div style={{ fontSize: 11, color: "#ccc", fontFamily: "'DM Mono',monospace" }}>{item.fromMeal}</div>}
+                              </div>
+                              <span style={{ fontFamily: "'DM Mono',monospace", fontSize: 13, color: "#aaa", flexShrink: 0 }}>{item.amount} {item.unit}</span>
+                              <button className="btn-tap" onClick={e => { e.stopPropagation(); removeItem(item.id); }}
+                                style={{ color: "#d4c9b5", fontSize: 22, lineHeight: 1, padding: "0 2px", flexShrink: 0 }}>×</button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Bottom navigation */}
+      <div className="bottom-nav">
+        <button className={`nav-tab ${view === "meals" ? "active" : ""}`} onClick={() => setView("meals")}>
+          <span className="nav-tab-icon">🍽️</span>
+          <span className="nav-tab-label">Meals</span>
+        </button>
+        <button className={`nav-tab ${view === "shopping" ? "active" : ""}`} onClick={() => setView("shopping")} style={{ position: "relative" }}>
+          <span className="nav-tab-icon">🛒</span>
+          <span className="nav-tab-label">Shopping</span>
+          {shoppingList.length > 0 && (
+            <span style={{ position: "absolute", top: 8, right: "calc(50% - 18px)", width: 8, height: 8, background: "#E8472A", borderRadius: "50%" }} />
+          )}
+        </button>
+      </div>
+
+      {/* Modals */}
+      {selectedMeal && <MealDetail meal={selectedMeal} onClose={() => setSelectedMeal(null)} onAddToList={addMealsToList} />}
+      {modal === "addMeal" && <AddMealModal onClose={() => setModal(null)} onAdd={handleAddMeal} />}
+      {modal === "addItem" && <AddItemModal onClose={() => setModal(null)} onAdd={handleAddItem} />}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body>
+</html>
