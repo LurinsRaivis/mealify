@@ -355,7 +355,8 @@ function BottomSheet({ onClose, children }) {
 }
 
 /* ── Meal detail sheet ──────────────────────────────────────────── */
-function MealDetail({ meal, onClose, onAddToList }) {
+function MealDetail({ meal, onClose, onAddToList, onDelete }) {
+  const [confirming, setConfirming] = useState(false);
   return (
     <BottomSheet onClose={onClose}>
       {/* colour stripe */}
@@ -398,9 +399,26 @@ function MealDetail({ meal, onClose, onAddToList }) {
       </div>
 
       <button className="btn" onClick={() => { onAddToList(meal); onClose(); }}
-        style={{ width: "100%", background: "#1a1a1a", color: "#fafaf7", padding: 16, borderRadius: 16, fontFamily: "'Lora',serif", fontWeight: 700, fontSize: 16 }}>
+        style={{ width: "100%", background: "#1a1a1a", color: "#fafaf7", padding: 16, borderRadius: 16, fontFamily: "'Lora',serif", fontWeight: 700, fontSize: 16, marginBottom: 10 }}>
         Add All to Shopping List
       </button>
+
+      {!confirming
+        ? <button className="btn" onClick={() => setConfirming(true)}
+            style={{ width: "100%", background: "#fff0f0", color: "#c0392b", padding: 14, borderRadius: 16, fontFamily: "'Lora',serif", fontSize: 15, border: "1.5px solid #f5c6c6" }}>
+            Delete Meal
+          </button>
+        : <div style={{ display: "flex", gap: 10 }}>
+            <button className="btn" onClick={() => setConfirming(false)}
+              style={{ flex: 1, padding: 14, borderRadius: 14, background: "#f0ece3", color: "#888", fontFamily: "'Lora',serif", fontSize: 15 }}>
+              Cancel
+            </button>
+            <button className="btn" onClick={() => { onDelete(meal.id); onClose(); }}
+              style={{ flex: 1, padding: 14, borderRadius: 14, background: "#c0392b", color: "#fff", fontFamily: "'Lora',serif", fontWeight: 700, fontSize: 15 }}>
+              Yes, delete
+            </button>
+          </div>
+      }
     </BottomSheet>
   );
 }
@@ -497,6 +515,8 @@ function App() {
     tags: form.tags.split(",").map(t => t.trim()).filter(Boolean),
     ingredients: [],
   }]);
+
+  const deleteMeal = id => setMeals(m => m.filter(meal => meal.id !== id));
 
   const handleAddItem = form => setShoppingList(l => [...l, { ...form, id: Date.now() }]);
   const removeItem    = id  => setShoppingList(l => l.filter(i => i.id !== id));
@@ -681,7 +701,7 @@ function App() {
       </div>
 
       {/* ── SHEETS ── */}
-      {selectedMeal && <MealDetail meal={selectedMeal} onClose={() => setSelectedMeal(null)} onAddToList={addMealsToList} />}
+      {selectedMeal && <MealDetail meal={selectedMeal} onClose={() => setSelectedMeal(null)} onAddToList={addMealsToList} onDelete={deleteMeal} />}
       {modal === "addMeal" && <AddMealSheet onClose={() => setModal(null)} onAdd={handleAddMeal} />}
       {modal === "addItem" && <AddItemSheet onClose={() => setModal(null)} onAdd={handleAddItem} />}
     </div>
